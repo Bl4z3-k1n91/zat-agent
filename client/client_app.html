@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ZAT // CLIENT PRO</title>
+    
+    <!-- Load Libraries with explicit error handlers -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" onerror="window.libError('Chart.js')"></script>
+    <script src="https://unpkg.com/lucide@latest" onerror="window.libError('Lucide Icons')"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;700&display=swap');
+
+        /* --- THEME CONFIG --- */
+        :root {
+            --bg-color: #030304;
+            --panel-bg: rgba(20, 20, 25, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-color: #3b82f6; /* Blue-500 */
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --text-main: #e4e4e7;
+            --text-muted: #71717a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0; padding: 0;
+            height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            
+            /* Slaazy Background Grid */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15), transparent 70%);
+            background-size: 30px 30px, 30px 30px, 100% 100%;
+        }
+
+        /* --- COMPONENTS --- */
+
+        .app-container {
+            width: 1200px; height: 800px;
+            display: flex;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-content {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .sidebar-content::-webkit-scrollbar { width: 4px; }
+        .sidebar-content::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        /* Form Controls */
+        .input-group { margin-bottom: 16px; }
+        .label {
+            display: block; font-size: 10px; font-weight: 700; 
+            color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.05em;
+        }
+        
+        input, select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        /* Buttons */
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px; font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
+
+        .btn-icon {
+            width: 32px; padding: 0; 
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+        .btn-icon:hover { background: rgba(255,255,255,0.1); color: white; }
+
+        /* Stream Cards */
+        .stream-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stream-card:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255,255,255,0.15); }
+        .stream-card.active {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        .stream-card.active::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        /* Main View */
+        .main-view {
+            flex: 1;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+
+        .top-bar {
+            height: 60px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 32px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .chart-container {
+            flex: 1;
+            padding: 32px;
+            position: relative;
+            display: flex; flex-direction: column;
+        }
+
+        /* Log Panel */
+        .log-panel {
+            height: 160px;
+            border-top: 1px solid var(--border-color);
+            background: #050505;
+            display: flex; flex-direction: column;
+        }
+        
+        .log-header {
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 10px; font-weight: 700; color: #52525b;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            display: flex; justify-content: space-between;
+        }
+        
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        
+        .log-entry { margin-bottom: 4px; display: flex; gap: 10px; }
+        .log-time { color: #3f3f46; user-select: none; }
+        .log-info { color: #a1a1aa; }
+        .log-error { color: #ef4444; }
+        .log-success { color: #22c55e; }
+        .log-warn { color: #eab308; }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .badge {
+            padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700;
+        }
+        .badge-live { background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+        .badge-pending { background: rgba(234, 179, 8, 0.1); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.2); }
+        .badge-err { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white tracking-wide">ZAT CLIENT</div>
+                        <div class="text-[9px] font-medium text-zinc-500 tracking-wider">TELEMETRY CONSOLE</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- Config Card -->
+                <div class="mb-8">
+                    <div class="text-[10px] font-bold text-zinc-500 mb-4 uppercase tracking-wider">Connection Setup</div>
+                    
+                    <div class="input-group">
+                        <span class="label">CONTROLLER API</span>
+                        <div class="flex gap-2">
+                            <input id="api-url" value="http://127.0.0.1:5000">
+                            <button class="btn btn-icon" onclick="client.fetchInventory()" title="Refresh Inventory">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <span class="label">CLIENT IDENTITY</span>
+                        <input id="client-id" value="Analyst-01">
+                    </div>
+
+                    <div class="w-full h-px bg-white/5 my-4"></div>
+
+                    <div class="input-group">
+                        <span class="label">TARGET ROUTER</span>
+                        <select id="target-host">
+                            <option>Waiting for connection...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <span class="label">SENSOR PATH</span>
+                        <div class="flex gap-2">
+                            <select id="sensor-path">
+                                <option>Select Router First</option>
+                            </select>
+                            <button class="btn btn-icon" onclick="client.scanSensors()" title="Scan Sensors">
+                                <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <span class="label">DURATION (SECONDS)</span>
+                        <input type="number" id="duration" value="60">
+                    </div>
+
+                    <button id="btn-request" onclick="client.requestStream()" class="btn btn-primary mt-2">
+                        <i data-lucide="radio" class="w-3.5 h-3.5"></i> REQUEST STREAM
+                    </button>
+                </div>
+
+                <!-- Active Streams -->
+                <div>
+                    <div class="flex justify-between items-end mb-3">
+                        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Active Sessions</div>
+                        <div id="stream-count" class="text-[9px] font-mono text-zinc-600">0</div>
+                    </div>
+                    <div id="stream-list">
+                        <!-- Stream Cards Injected Here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-view">
+            
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="monitor" class="w-4 h-4 text-zinc-500"></i>
+                    <div class="text-xs font-medium text-zinc-300" id="session-title">Select a stream to visualize</div>
+                </div>
+                
+                <div class="flex items-center gap-4 opacity-0 transition-opacity duration-300" id="session-controls">
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
+                        <i data-lucide="timer" class="w-3 h-3 text-zinc-400"></i>
+                        <span id="timer-display" class="text-[10px] font-mono text-white font-bold">0s</span>
+                    </div>
+                    <button onclick="client.killCurrentStream()" class="text-[10px] font-bold text-red-400 hover:text-red-300 transition-colors flex items-center gap-2">
+                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> DISCONNECT
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chart Area -->
+            <div class="chart-container">
+                <!-- Empty State -->
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 z-10">
+                    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+                        <i data-lucide="bar-chart-2" class="w-8 h-8 opacity-40"></i>
+                    </div>
+                    <span class="text-xs font-medium tracking-widest opacity-50">READY FOR DATA</span>
+                    <span id="chart-status-text" class="text-[10px] mt-1 opacity-30">Waiting for inventory...</span>
+                </div>
+
+                <!-- Canvas -->
+                <div class="w-full h-full relative z-0">
+                    <canvas id="main-chart"></canvas>
+                    <div id="raw-data-view" class="hidden absolute inset-0 flex items-center justify-center text-2xl font-mono font-bold text-zinc-500">
+                        --
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console -->
+            <div class="log-panel">
+                <div class="log-header">
+                    <span>System Event Log</span>
+                    <button onclick="document.getElementById('console-output').innerHTML=''" class="hover:text-white transition-colors">Clear</button>
+                </div>
+                <div id="console-output" class="log-content">
+                    <div class="log-entry"><span class="log-time">[BOOT]</span><span class="log-info">Client shell initialized.</span></div>
+                </div>
+            </div>
+
+            <!-- Footer Status -->
+            <div class="px-4 py-1 bg-black border-t border-zinc-800 flex justify-between items-center text-[9px] font-mono text-zinc-600">
+                <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-zinc-700 transition-colors duration-500" id="status-dot"></div>
+                    <span id="connection-text">OFFLINE</span>
+                </div>
+                <div>v2.2.0-PRO</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GLOBAL ERROR TRAP ---
+        window.libErrors = [];
+        window.libError = function(libName) { window.libErrors.push(libName); };
+        window.onerror = function(msg, url, line) {
+            const box = document.getElementById('console-output');
+            if(box) box.innerHTML += `<div class="log-entry"><span class="log-time">[ERR]</span><span class="log-error">${msg} (L${line})</span></div>`;
+            return false;
+        };
+
+        class ZatClient {
+            constructor() {
+                this.streams = {}; 
+                this.activeId = null;
+                this.chart = null;
+                this.offlineMode = false;
+                
+                // Auto-detect Host
+                if(window.location.protocol.startsWith('http')) {
+                   document.getElementById('api-url').value = window.location.origin;
+                }
+
+                // Check Libs
+                setTimeout(() => this.checkDependencies(), 200);
+            }
+
+            checkDependencies() {
+                if (window.libErrors.length > 0) {
+                    this.log(`Library Error: ${window.libErrors.join(", ")}`, "error");
+                    this.offlineMode = true;
+                }
+                
+                if (typeof Chart === 'undefined') {
+                    if(!this.offlineMode) this.log("Chart.js missing. Visuals disabled.", "warn");
+                    document.getElementById('chart-status-text').innerText = "Visuals Disabled (Text Only Mode)";
+                    this.offlineMode = true;
+                } else {
+                    this.initChart();
+                }
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                // Auto Connect
+                this.fetchInventory();
+            }
+
+            log(msg, type = "info") {
+                const box = document.getElementById('console-output');
+                if(!box) return;
+                const time = new Date().toLocaleTimeString('en-US', {hour12: false});
+                const colorClass = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : type === 'warn' ? 'log-warn' : 'log-info';
+                
+                const entry = document.createElement('div');
+                entry.className = "log-entry";
+                entry.innerHTML = `<span class="log-time">[${time}]</span><span class="${colorClass}">${msg}</span>`;
+                
+                box.appendChild(entry);
+                box.scrollTop = box.scrollHeight;
+            }
+
+            setConnectionStatus(status) {
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('connection-text');
+                if (status === 'connected') {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
+                    text.innerText = "ONLINE"; text.className = "text-green-500";
+                } else if (status === 'error') {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-red-500";
+                    text.innerText = "ERROR"; text.className = "text-red-500";
+                } else {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-zinc-700";
+                    text.innerText = "OFFLINE"; text.className = "text-zinc-600";
+                }
+            }
+
+            initChart() {
+                const canvas = document.getElementById('main-chart');
+                if(!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                // Sexy Gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+                this.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ label: 'Metric', data: [], borderColor: '#3b82f6', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.4 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { 
+                            x: { display: false }, 
+                            y: { display: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#52525b', font: {family: 'JetBrains Mono', size: 10} } } 
+                        }, animation: false
+                    }
+                });
+            }
+
+            async fetchWithTimeout(url, options = {}) {
+                const { timeout = 30000 } = options;
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const res = await fetch(url, { ...options, signal: controller.signal });
+                    clearTimeout(id);
+                    return res;
+                } catch (error) {
+                    clearTimeout(id);
+                    throw error;
+                }
+            }
+
+            async fetchInventory() {
+                let url = document.getElementById('api-url').value.replace(/\/$/, "");
+                const sel = document.getElementById('target-host');
+                
+                sel.innerHTML = '<option>Connecting...</option>';
+                this.log(`Dialing Controller at ${url}...`);
+                this.setConnectionStatus('connecting');
+
+                try {
+                    const res = await this.fetchWithTimeout(`${url}/api/data`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    
+                    const data = await res.json();
+                    if (!data || !data.inventory) throw new Error("Invalid Payload");
+
+                    sel.innerHTML = '';
+                    const hosts = Object.keys(data.inventory);
+                    
+                    if (hosts.length === 0) sel.innerHTML = '<option value="">(No Devices Found)</option>';
+                    else hosts.forEach(h => {
+                        const ip = data.inventory[h]?.meta?.source_ip || "?";
+                        sel.add(new Option(`${h} (${ip})`, h));
+                    });
+                    
+                    this.log(`Connected. ${hosts.length} routers available.`, "success");
+                    this.setConnectionStatus('connected');
+                } catch (e) {
+                    let msg = e.name === 'AbortError' ? "Timeout" : e.message;
+                    this.log(`Connect Failed: ${msg}`, "error");
+                    sel.innerHTML = '<option>Connection Error</option>';
+                    this.setConnectionStatus('error');
+                }
+            }
+
+            async scanSensors() {
+                let url = document.getElementById('api-url').value.replace(/\/$/, "");
+                const target = document.getElementById('target-host').value;
+                const sel = document.getElementById('sensor-path');
+
+                if (!target || target.includes("Error") || target.includes("Connect")) return this.log("Select a valid router first.", "warn");
+                
+                sel.innerHTML = '<option>Scanning...</option>';
+                this.log(`Scanning sensors on ${target}...`);
+
+                try {
+                    const res = await this.fetchWithTimeout(`${url}/api/probe`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target: target }), timeout: 5000
+                    });
+                    const data = await res.json();
+                    sel.innerHTML = '';
+                    
+                    if (data.status === 'success' && data.sensors.length > 0) {
+                        data.sensors.forEach(s => sel.add(new Option(s, s)));
+                        this.log(`Scan complete. ${data.sensors.length} sensors found.`, "success");
+                    } else {
+                        sel.innerHTML = '<option>No Sensors Found</option>';
+                        this.log("No sensors returned by agent.", "warn");
+                    }
+                } catch (e) {
+                    sel.innerHTML = '<option>Scan Failed</option>';
+                    this.log(`Scan Error: ${e.message}`, "error");
+                }
+            }
+
+            async requestStream() {
+                let url = document.getElementById('api-url').value.replace(/\/$/, "");
+                const target = document.getElementById('target-host').value;
+                const sensor = document.getElementById('sensor-path').value;
+                const duration = parseInt(document.getElementById('duration').value);
+                const clientId = document.getElementById('client-id').value;
+
+                if (!target || target.includes("Error")) return;
+
+                const btn = document.getElementById('btn-request');
+                btn.disabled = true; 
+                btn.innerHTML = `<span class="spinner"></span> REQUESTING...`;
+
+                try {
+                    const res = await this.fetchWithTimeout(`${url}/api/access/request`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ client_id: clientId, target_router: target, sensor_path: sensor, duration: duration })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.status === 'submitted') {
+                        const reqId = data.request_id;
+                        this.streams[reqId] = { id: reqId, info: { target, sensor, duration }, data: { labels: [], values: [] }, status: 'PENDING', ws: null, timer: null, remaining: duration };
+                        this.log(`Request [${reqId}] submitted. Waiting for approval...`);
+                        this.renderSidebar();
+                        this.connectWS(url, reqId);
+                    }
+                } catch (e) {
+                    this.log(`Request Failed: ${e.message}`, "error");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-lucide="radio" class="w-3.5 h-3.5"></i> REQUEST STREAM`;
+                    lucide.createIcons();
+                }
+            }
+
+            connectWS(baseUrl, reqId) {
+                if(baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+                const wsUrl = baseUrl.replace('http', 'ws') + `/ws/stream/${reqId}`;
+                
+                try {
+                    const ws = new WebSocket(wsUrl);
+                    this.streams[reqId].ws = ws;
+
+                    ws.onopen = () => this.log(`[${reqId}] Tunnel established.`);
+
+                    ws.onmessage = (e) => {
+                        const msg = JSON.parse(e.data);
+                        const s = this.streams[reqId];
+
+                        if (msg.status === "STREAM_STARTED") {
+                            s.status = "LIVE";
+                            this.log(`[${reqId}] Stream Active!`, "success");
+                            this.startTimer(reqId);
+                            this.renderSidebar();
+                            if (this.activeId === reqId) this.updateView();
+                        } 
+                        else if (msg.status === "STREAM_ENDED" || msg.status === "ACCESS_DENIED") {
+                            s.status = msg.status === "ACCESS_DENIED" ? "DENIED" : "DONE";
+                            this.log(`[${reqId}] Closed: ${msg.status}`, "warn");
+                            ws.close();
+                        }
+                        else if (msg.type === "data") {
+                            const p = msg.payload;
+                            if (s.data.labels.length > 60) { s.data.labels.shift(); s.data.values.shift(); }
+                            s.data.labels.push(p.timestamp); s.data.values.push(p.value);
+                            if (this.activeId === reqId) this.updateChart();
+                        }
+                    };
+
+                    ws.onclose = () => {
+                        const s = this.streams[reqId];
+                        if (s.status === 'LIVE' || s.status === 'PENDING') s.status = 'OFFLINE';
+                        this.renderSidebar();
+                        this.stopTimer(reqId);
+                    };
+                } catch(e) {
+                    this.log(`WS Error: ${e.message}`, "error");
+                }
+            }
+
+            // --- UI HELPERS ---
+            startTimer(reqId) {
+                const s = this.streams[reqId];
+                if(s.timer) clearInterval(s.timer);
+                s.timer = setInterval(() => {
+                    s.remaining--;
+                    if(this.activeId === reqId) document.getElementById('timer-display').innerText = `${s.remaining}s`;
+                    if(s.remaining <= 0) this.stopTimer(reqId);
+                }, 1000);
+            }
+            stopTimer(reqId) { const s = this.streams[reqId]; if(s && s.timer) clearInterval(s.timer); }
+            
+            selectStream(reqId) {
+                this.activeId = reqId;
+                this.renderSidebar(); 
+                this.updateView();
+            }
+
+            updateView() {
+                const s = this.streams[this.activeId];
+                if (!s) return;
+                
+                document.getElementById('empty-state').classList.add('hidden');
+                document.getElementById('session-controls').classList.remove('opacity-0');
+                document.getElementById('session-title').innerText = `${s.info.target} :: ${s.info.sensor}`;
+                
+                if(!this.offlineMode && this.chart) {
+                    this.chart.data.labels = s.data.labels;
+                    this.chart.data.datasets[0].data = s.data.values;
+                    this.chart.update();
+                } else {
+                    document.getElementById('main-chart').style.display = 'none';
+                    document.getElementById('raw-data-view').classList.remove('hidden');
+                    const lastVal = s.data.values[s.data.values.length - 1];
+                    document.getElementById('raw-data-view').innerText = lastVal !== undefined ? lastVal : "--";
+                }
+                document.getElementById('timer-display').innerText = `${s.remaining}s`;
+            }
+
+            updateChart() {
+                if(!this.offlineMode && this.chart) this.chart.update('none');
+                else {
+                    // Update Text Mode
+                    const s = this.streams[this.activeId];
+                    const lastVal = s.data.values[s.data.values.length - 1];
+                    document.getElementById('raw-data-view').innerText = lastVal;
+                }
+            }
+            
+            killCurrentStream() {
+                if(this.activeId && this.streams[this.activeId].ws) this.streams[this.activeId].ws.close();
+            }
+
+            renderSidebar() {
+                const container = document.getElementById('stream-list');
+                container.innerHTML = '';
+                const streams = Object.values(this.streams);
+                document.getElementById('stream-count').innerText = streams.length;
+
+                if(streams.length === 0) {
+                    container.innerHTML = `<div class="text-[10px] text-zinc-600 italic text-center py-4">No active sessions</div>`;
+                    return;
+                }
+
+                streams.forEach(s => {
+                    const isActive = s.id === this.activeId;
+                    const div = document.createElement('div');
+                    div.className = `stream-card ${isActive ? 'active' : ''}`;
+                    div.onclick = () => this.selectStream(s.id);
+                    
+                    const badgeClass = s.status === 'LIVE' ? 'badge-live' : s.status === 'PENDING' ? 'badge-pending' : 'badge-err';
+                    
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-white truncate max-w-[150px]">${s.info.target}</span>
+                            <span class="badge ${badgeClass}">${s.status}</span>
+                        </div>
+                        <div class="text-[9px] text-zinc-500 truncate mb-2">${s.info.sensor}</div>
+                        <div class="w-full bg-zinc-800 h-0.5 rounded overflow-hidden">
+                            <div class="bg-blue-500 h-full" style="width: ${(s.remaining/s.info.duration)*100}%"></div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            window.client = new ZatClient();
+        });
+    </script>
+</body>
+</html>

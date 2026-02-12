@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+service TelemetryService {
+  rpc Subscribe (SubscriptionRequest) returns (stream TelemetryData);
+  rpc GetCapabilities (Empty) returns (CapabilitiesResponse);
+}
+
+message Empty {}
+
+message SubscriptionRequest {
+  string xpath = 1;
+  int32 period = 2;
+  int32 duration = 3;
+}
+
+message TelemetryData {
+  string timestamp = 1;
+  string host = 2;
+  string xpath = 3;
+  double value = 4;
+}
+
+message CapabilitiesResponse {
+  repeated string supported_sensors = 1;
+  repeated string supported_modes = 2;
+  int32 max_subscriptions = 3;
+}
