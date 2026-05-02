@@ -188,9 +188,9 @@ pip install -r requirements.txt
 python controller.py
 ```
 
-Dashboard: http://localhost:5000
+Dashboard: http://<hosted_ip>:5000
 
-Client Gateway: http://localhost:5000/client
+Client Gateway: http://<hosted_ip>:5000/client
 
 ### 3. Start the Agent
 
